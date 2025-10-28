@@ -64,23 +64,31 @@ class _ApprovalPageState extends State<ApprovalPage> {
                 const SizedBox(height: 12),
                 Row(children: [
                   Container(
-                    decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(24)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white)),
+                  decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(24)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white)),
                   ),
                   const Spacer(),
                   if (isPending) ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _actOn(r['id'] as int, false),
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      label: const Text('Reject'),
+                  OutlinedButton.icon(
+                    onPressed: () => _actOn(r['id'] as int, false),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                    label: const Text('Reject', style: TextStyle(fontSize: 14)),
+                    style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton.icon(
-                      onPressed: () => _actOn(r['id'] as int, true),
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text('Approve'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () => _actOn(r['id'] as int, true),
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text('Approve', style: TextStyle(fontSize: 14)),
+                    style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
                     ),
+                  ),
                   ],
                 ]),
               ]),

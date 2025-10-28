@@ -111,10 +111,10 @@ class DashboardPage extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 role == 'student'
-                    ? 'John Doe'
+                    ? 'Future'
                     : role == 'lecturer'
-                        ? 'Dr. Smith'
-                        : 'Admin Staff',
+                        ? 'Boss'
+                        : 'Staff',
                 style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               ),
               Text(

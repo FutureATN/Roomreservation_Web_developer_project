@@ -14,43 +14,55 @@ class RoomDetailPage extends StatelessWidget {
     {'time': '15:00-17:00', 'status': 'free'},
   ];
 
-  Color _color(String s) => switch (s) {
-        'free' => Colors.green,
-        'pending' => Colors.orange,
-        'reserved' => Colors.red,
-        'disabled' => Colors.grey,
-        _ => Colors.grey,
-      };
+  Color _color(String s) {
+    switch (s) {
+      case 'free': return Colors.green;
+      case 'pending': return Colors.orange;
+      case 'reserved': return Colors.red;
+      case 'disabled': return Colors.grey;
+      default: return Colors.grey;
+    }
+  }
 
-  IconData _icon(String s) => switch (s) {
-        'free' => Icons.check_circle,
-        'pending' => Icons.pending,
-        'reserved' => Icons.event_busy,
-        'disabled' => Icons.block,
-        _ => Icons.help,
-      };
+  IconData _icon(String s) {
+    switch (s) {
+      case 'free': return Icons.check_circle;
+      case 'pending': return Icons.pending;
+      case 'reserved': return Icons.event_busy;
+      case 'disabled': return Icons.block;
+      default: return Icons.help;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final todayStr = formatTodayLong();
+
+    // SAFE reads — no `as String` casts.
+    final name  = (room['name'] ?? 'Unknown Room').toString();
+    final floor = room['floor'] is int ? room['floor'] as int : int.tryParse('${room['floor']}') ?? 0;
+    final cap   = room['capacity'] is int ? room['capacity'] as int : int.tryParse('${room['capacity']}') ?? 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(room['NAME'] as String),
+        title: Text(name),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
-            width: double.infinity, padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.blue.shade700])),
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.blue.shade700]),
+            ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.meeting_room, size: 60, color: Colors.white),
               const SizedBox(height: 10),
-              Text(room['name'] as String,
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text(name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 5),
-              Text('Floor ${room['floor']} • Capacity: ${room['capacity']} people',
+              Text('Floor $floor • Capacity: $cap people',
                   style: const TextStyle(fontSize: 16, color: Colors.white70)),
             ]),
           ),
@@ -58,10 +70,12 @@ class RoomDetailPage extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Available Time Slots - Today ($todayStr)',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
               const SizedBox(height: 15),
               ...timeSlots.map((slot) {
-                final status = slot['status']!;
+                final status = (slot['status'] ?? 'disabled').toString();
+                final time   = (slot['time'] ?? '').toString();
+
                 return Card(
                   elevation: 2,
                   margin: const EdgeInsets.only(bottom: 12),
@@ -72,18 +86,22 @@ class RoomDetailPage extends StatelessWidget {
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     leading: Icon(Icons.access_time, size: 40, color: _color(status)),
-                    title: Text(slot['time']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    title: Text(time, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     subtitle: Row(children: [
                       Icon(_icon(status), size: 16, color: _color(status)),
                       const SizedBox(width: 5),
-                      Text(status.toUpperCase(), style: TextStyle(color: _color(status), fontWeight: FontWeight.w600)),
+                      Text(status.toUpperCase(),
+                          style: TextStyle(color: _color(status), fontWeight: FontWeight.w600)),
                     ]),
                     trailing: role == 'student' && status == 'free'
                         ? FilledButton(
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => BookingConfirmPage(room: room, timeSlot: slot['time']!),
-                              ));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BookingConfirmPage(room: room, timeSlot: time),
+                                ),
+                              );
                             },
                             child: const Text('Book'),
                           )
@@ -91,42 +109,10 @@ class RoomDetailPage extends StatelessWidget {
                   ),
                 );
               }).toList(),
-              const SizedBox(height: 20),
-              _legend(),
             ]),
           ),
         ]),
       ),
     );
-  }
-
-  Widget _legend() {
-    return Card(
-      color: Colors.grey.shade100,
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Status Legend', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 10),
-          Row(children: [
-            _legendItem('Free', Colors.green), const SizedBox(width: 20),
-            _legendItem('Pending', Colors.orange),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            _legendItem('Reserved', Colors.red), const SizedBox(width: 20),
-            _legendItem('Disabled', Colors.grey),
-          ]),
-        ]),
-      ),
-    );
-  }
-
-  Widget _legendItem(String label, Color color) {
-    return Row(children: [
-      Container(width: 20, height: 20, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 8),
-      Text(label),
-    ]);
   }
 }
