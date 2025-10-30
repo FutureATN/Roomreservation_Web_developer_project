@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'register_page.dart';
 import 'dashboard_page.dart';
 import '../utils/session.dart';
+import '../utils/app_colors.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -44,57 +45,93 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.blue.shade400, Colors.blue.shade700],
-          ),
-        ),
         child: Center(
           child: SingleChildScrollView(
             child: Card(
-              margin: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(24),
               elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              color: AppColors.surface,
+              shadowColor: AppColors.primary.withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: AppColors.primary.withOpacity(0.3), width: 1),
+              ),
               child: Container(
-                padding: const EdgeInsets.all(30),
+                padding: const EdgeInsets.all(40),
                 width: 400,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.meeting_room, size: 80, color: Colors.blue),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
+                        ),
+                      ),
+                      child: const Icon(Icons.meeting_room_outlined, size: 48, color: AppColors.primary),
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       'Room Reservation',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w300,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40),
                     TextField(
                       controller: _usernameController,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: 'Username',
-                        prefixIcon: const Icon(Icons.account_circle),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        labelStyle: const TextStyle(color: AppColors.textSecondary),
+                        prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+                        filled: true,
+                        fillColor: AppColors.surfaceLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
                     TextField(
                       controller: _passwordController,
                       obscureText: true,
+                      style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        labelStyle: const TextStyle(color: AppColors.textSecondary),
+                        prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                        filled: true,
+                        fillColor: AppColors.surfaceLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -103,11 +140,16 @@ class _LoginPageState extends State<LoginPage> {
                       height: 50,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.background,
+                          elevation: 0,
+                          shadowColor: AppColors.primary.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ).copyWith(
+                          overlayColor: MaterialStateProperty.all(AppColors.primaryLight.withOpacity(0.2)),
                         ),
                         onPressed: _login,
-                        child: const Text('Login', style: TextStyle(fontSize: 18)),
+                        child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 1)),
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -118,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
                           MaterialPageRoute(builder: (_) => const RegisterPage()),
                         );
                       },
-                      child: const Text('Don\'t have an account? Register'),
+                      child: const Text('Don\'t have an account? Register', style: TextStyle(color: AppColors.primary)),
                     ),
                   ],
                 ),

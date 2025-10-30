@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 
 class ApprovalPage extends StatefulWidget {
   const ApprovalPage({super.key});
@@ -36,10 +37,21 @@ class _ApprovalPageState extends State<ApprovalPage> {
   Widget build(BuildContext context) {
     final items = _pending;
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('BOOKING APPROVALS'),
-         backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        title: const Text(
+          'Booking Approvals',
+          style: TextStyle(
+            fontWeight: FontWeight.w300,
+            fontSize: 24,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -49,44 +61,70 @@ class _ApprovalPageState extends State<ApprovalPage> {
           final r = items[i];
           final status = r['status'] as String;
           final isPending = status == 'pending';
-          final chipColor = status == 'pending' ? Colors.orange : (status == 'approved' ? Colors.green : Colors.red);
+          final chipColor = status == 'pending' ? AppColors.warning : (status == 'approved' ? AppColors.success : AppColors.error);
 
-          return Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.surface, AppColors.surfaceLight],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r['room'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(r['room'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18, color: AppColors.textPrimary)),
                 const SizedBox(height: 6),
-                Text('Date: ${r['date']}  •  Time: ${r['time']}'),
-                Text('Requested by: ${r['requestedBy']}'),
+                Text('Date: ${r['date']}  •  Time: ${r['time']}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                Text('Requested by: ${r['requestedBy']}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                 const SizedBox(height: 12),
                 Row(children: [
                   Container(
-                  decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(24)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white)),
+                    decoration: BoxDecoration(
+                      color: chipColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: chipColor, width: 1),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(color: chipColor, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
                   ),
                   const Spacer(),
                   if (isPending) ...[
                   OutlinedButton.icon(
                     onPressed: () => _actOn(r['id'] as int, false),
-                    icon: const Icon(Icons.close, color: Colors.red, size: 18),
-                    label: const Text('Reject', style: TextStyle(fontSize: 14)),
+                    icon: Icon(Icons.close_outlined, color: AppColors.error, size: 18),
+                    label: const Text('Reject', style: TextStyle(fontSize: 14, color: AppColors.error)),
                     style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    minimumSize: Size.zero,
+                      side: const BorderSide(color: AppColors.error, width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: () => _actOn(r['id'] as int, true),
-                    icon: const Icon(Icons.check_circle, size: 18),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
                     label: const Text('Approve', style: TextStyle(fontSize: 14)),
                     style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    minimumSize: Size.zero,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.background,
+                      elevation: 0,
+                      shadowColor: AppColors.primary.withOpacity(0.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   ],

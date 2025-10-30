@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/session.dart';
+import '../utils/app_colors.dart';
 
 class HistoryPage extends StatefulWidget {
   final String role;
@@ -72,21 +73,23 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Color _statusColor(String? s) => switch (s) {
-        'reserved' => Colors.green,
-        'pending'  => Colors.orange,
-        'rejected' => Colors.red,
-        _ => Colors.grey,
+        'reserved' => AppColors.success,
+        'pending'  => AppColors.warning,
+        'rejected' => AppColors.error,
+        _ => AppColors.disabled,
       };
 
   @override
   Widget build(BuildContext context) {
     final items = _makeFakeHistory(widget.role);
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        
-        title: const Text('HISTORY'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        title: const Text('History', style: TextStyle(fontWeight: FontWeight.w400, letterSpacing: 0.5)),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       body: items.isEmpty
           ? const Center(child: Text('No history to show.'))
@@ -96,18 +99,35 @@ class _HistoryPageState extends State<HistoryPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) {
                 final h = items[i];
-                return Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.surface, AppColors.surfaceLight],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      backgroundColor: _statusColor(h['status']),
-                      child: const Icon(Icons.history, color: Colors.white),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _statusColor(h['status']).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.history_outlined, color: _statusColor(h['status']), size: 24),
                     ),
                     title: Text(
                       '${h['room']} • ${(h['status'] ?? '').toUpperCase()}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                     ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),

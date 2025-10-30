@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 
 class ManageRoomsPage extends StatefulWidget {
   const ManageRoomsPage({super.key});
@@ -16,11 +17,11 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
   ];
 
   Color _statusColor(String s) => switch (s) {
-        'free' => Colors.green,
-        'reserved' => Colors.red,
-        'pending' => Colors.orange,
-        'disabled' => Colors.grey,
-        _ => Colors.grey,
+        'free' => AppColors.success,
+        'reserved' => AppColors.error,
+        'pending' => AppColors.warning,
+        'disabled' => AppColors.disabled,
+        _ => AppColors.disabled,
       };
 
   Future<void> _addOrEditRoom({Map<String, dynamic>? room}) async {
@@ -108,11 +109,28 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('MANAGE ROOMS'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        actions: [ IconButton(icon: const Icon(Icons.add), onPressed: () => _addOrEditRoom(), tooltip: 'Add Room') ],
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        title: const Text(
+          'Manage Rooms',
+          style: TextStyle(
+            fontWeight: FontWeight.w300,
+            fontSize: 24,
+            letterSpacing: 0.5,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+            onPressed: () => _addOrEditRoom(),
+            tooltip: 'Add Room',
+          )
+        ],
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -120,24 +138,50 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (_, i) {
           final r = _rooms[i];
-          return Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.surface, AppColors.surfaceLight],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                backgroundColor: _statusColor(r['status'] as String),
-                child: const Icon(Icons.meeting_room, color: Colors.white),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _statusColor(r['status'] as String).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.meeting_room_outlined, color: _statusColor(r['status'] as String), size: 24),
               ),
-              title: Text(r['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(r['name'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textPrimary)),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text('Floor ${r['floor']} • Capacity: ${r['capacity']} • Status: ${r['status']}'),
+                child: Text(
+                  'Floor ${r['floor']} • Capacity: ${r['capacity']} • Status: ${r['status']}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                ),
               ),
-              trailing: Wrap(spacing: 8, children: [
-                IconButton(icon: const Icon(Icons.edit), onPressed: () => _addOrEditRoom(room: r)),
+              trailing: Wrap(spacing: 4, children: [
                 IconButton(
-                  icon: Icon((r['status'] == 'disabled') ? Icons.lock_open : Icons.lock),
+                  icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                  onPressed: () => _addOrEditRoom(room: r),
+                ),
+                IconButton(
+                  icon: Icon(
+                    (r['status'] == 'disabled') ? Icons.lock_open_outlined : Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
                   tooltip: (r['status'] == 'disabled') ? 'Enable (set FREE)' : 'Disable',
                   onPressed: () => _toggleDisable(r),
                 ),

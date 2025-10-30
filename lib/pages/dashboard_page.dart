@@ -5,6 +5,7 @@ import 'approval_page.dart';
 import 'manage_rooms_page.dart';
 import 'history_page.dart';
 import 'login_page.dart';
+import '../utils/app_colors.dart';
 
 class DashboardPage extends StatelessWidget {
   final String role;
@@ -33,19 +34,22 @@ class DashboardPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            const Text('DASHBOARD', style: TextStyle(letterSpacing: 1.2)),
+            const Text('Dashboard', style: TextStyle(letterSpacing: 0.5, fontWeight: FontWeight.w400)),
             const SizedBox(width: 8),
-            Icon(_roleIcon(role)),
+            Icon(_roleIcon(role), size: 20, color: AppColors.primary),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_outlined, color: AppColors.textSecondary),
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -60,10 +64,12 @@ class DashboardPage extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
               "Today's Overview",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w300,
+                color: AppColors.textPrimary,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -95,18 +101,23 @@ class DashboardPage extends StatelessWidget {
 
   Drawer _buildDrawer(BuildContext context) {
     return Drawer(
+      backgroundColor: AppColors.background,
       child: ListView(padding: EdgeInsets.zero, children: [
         DrawerHeader(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.blue.shade400, Colors.blue.shade700]),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.primary, AppColors.accent],
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 40, color: Colors.blue),
+                backgroundColor: Colors.white.withOpacity(0.3),
+                child: const Icon(Icons.person_outline, size: 36, color: Colors.white),
               ),
               const SizedBox(height: 10),
               Text(
@@ -125,13 +136,13 @@ class DashboardPage extends StatelessWidget {
           ),
         ),
         ListTile(
-          leading: const Icon(Icons.dashboard),
-          title: const Text('Dashboard'),
+          leading: const Icon(Icons.dashboard_outlined, color: AppColors.primary, size: 22),
+          title: const Text('Dashboard', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
           onTap: () => Navigator.pop(context),
         ),
         ListTile(
-          leading: const Icon(Icons.meeting_room),
-          title: const Text('Browse Rooms'),
+          leading: const Icon(Icons.meeting_room_outlined, color: AppColors.primary, size: 22),
+          title: const Text('Browse Rooms', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
           onTap: () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => RoomListPage(role: role)));
@@ -139,8 +150,8 @@ class DashboardPage extends StatelessWidget {
         ),
         if (role == 'student')
           ListTile(
-            leading: const Icon(Icons.check_circle),
-            title: const Text('My Requests'),
+            leading: const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 22),
+            title: const Text('My Requests', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestStatusPage()));
@@ -148,8 +159,8 @@ class DashboardPage extends StatelessWidget {
           ),
         if (role == 'lecturer')
           ListTile(
-            leading: const Icon(Icons.approval),
-            title: const Text('Booking Requests'),
+            leading: const Icon(Icons.approval_outlined, color: AppColors.primary, size: 22),
+            title: const Text('Booking Requests', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ApprovalPage()));
@@ -157,25 +168,25 @@ class DashboardPage extends StatelessWidget {
           ),
         if (role == 'staff')
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Manage Rooms'),
+            leading: const Icon(Icons.settings_outlined, color: AppColors.primary, size: 22),
+            title: const Text('Manage Rooms', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageRoomsPage()));
             },
           ),
         ListTile(
-          leading: const Icon(Icons.history),
-          title: const Text('History'),
+          leading: const Icon(Icons.history_outlined, color: AppColors.primary, size: 22),
+          title: const Text('History', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
           onTap: () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryPage(role: role)));
           },
         ),
-        const Divider(),
+        const Divider(height: 1),
         ListTile(
-          leading: const Icon(Icons.logout, color: Colors.red),
-          title: const Text('Logout', style: TextStyle(color: Colors.red)),
+          leading: const Icon(Icons.logout_outlined, color: AppColors.textSecondary, size: 22),
+          title: const Text('Logout', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
           onTap: () => Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -202,49 +213,54 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [stat.color.withOpacity(.7), stat.color.withOpacity(.9)],
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.surface, AppColors.surfaceLight],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-        child: Column(
-          children: [
-            const Spacer(),
-            Icon(stat.icon, size: 36, color: Colors.white), // slightly smaller
-            const SizedBox(height: 6),
-            Text(
-              stat.count,
-              maxLines: 1,
-              overflow: TextOverflow.fade,
+        ],
+      ),
+      child: Column(
+        children: [
+          const Spacer(),
+          Icon(stat.icon, size: 32, color: AppColors.primary),
+          const SizedBox(height: 6),
+          Text(
+            stat.count,
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w300,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Flexible(
+            child: Text(
+              stat.title,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 26, // smaller to avoid overflow
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                stat.title,
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const Spacer(),
-          ],
-        ),
+          ),
+          const Spacer(),
+        ],
       ),
     );
   }

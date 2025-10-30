@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import '../utils/app_colors.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -28,16 +29,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.blue.shade400, Colors.blue.shade700],
-          ),
-        ),
         child: Center(
           child: SingleChildScrollView(
             child: Column(
@@ -46,6 +40,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 Card(
                   margin: const EdgeInsets.all(20),
                   elevation: 8,
+                  color: AppColors.surface,
+                  shadowColor: AppColors.primary.withOpacity(0.3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -59,57 +55,133 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [
                   Text(
                     'Create Account',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 1.5,
                     ),
                   ),
                   const SizedBox(height: 30),
                   TextFormField(
                     controller: _idController,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Student ID',
-                      prefixIcon: Icon(Icons.badge),
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.badge, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.person, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Username',
-                      prefixIcon: Icon(Icons.account_circle),
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.account_circle, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.lock, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
                       labelText: 'Confirm Password',
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -118,7 +190,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     height: 50,
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: scheme.primary,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.background,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -153,7 +227,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                   child: const Text(
                     'Already have an account? Login',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: const TextStyle(color: AppColors.primary, fontSize: 16),
                   ),
                 ),
                 const SizedBox(height: 20),
