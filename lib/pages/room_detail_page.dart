@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/date_utils.dart';
 import 'booking_confirm_page.dart';
+import '../utils/booking_state.dart';
 
 class RoomDetailPage extends StatelessWidget {
   final Map<String, dynamic> room;
@@ -37,6 +38,7 @@ class RoomDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final todayStr = formatTodayLong();
+    final now = DateTime.now();
 
     // SAFE reads — no `as String` casts.
     final name  = (room['name'] ?? 'Unknown Room').toString();
@@ -75,6 +77,17 @@ class RoomDetailPage extends StatelessWidget {
               ...timeSlots.map((slot) {
                 final status = (slot['status'] ?? 'disabled').toString();
                 final time   = (slot['time'] ?? '').toString();
+                final parts = time.split('-');
+                final start = parts.isNotEmpty ? parts.first : '';
+                int sh = 0, sm = 0;
+                if (start.contains(':')) {
+                  final hm = start.split(':');
+                  sh = int.tryParse(hm[0]) ?? 0;
+                  sm = int.tryParse(hm[1]) ?? 0;
+                }
+                final slotStart = DateTime(now.year, now.month, now.day, sh, sm);
+                final isPast = now.isAfter(slotStart);
+                final hasBooked = role == 'student' && BookingState.hasBookedToday();
 
                 return Card(
                   elevation: 2,
@@ -93,7 +106,7 @@ class RoomDetailPage extends StatelessWidget {
                       Text(status.toUpperCase(),
                           style: TextStyle(color: _color(status), fontWeight: FontWeight.w600)),
                     ]),
-                    trailing: role == 'student' && status == 'free'
+                    trailing: role == 'student' && status == 'free' && !isPast && !hasBooked
                         ? FilledButton(
                             onPressed: () {
                               Navigator.push(

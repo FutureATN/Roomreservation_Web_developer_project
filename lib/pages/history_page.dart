@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/session.dart';
 
 class HistoryPage extends StatefulWidget {
   final String role;
@@ -9,21 +10,65 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  final List<Map<String, String?>> _log = [
-    {'room': 'Meeting Room B','date': '2025-10-20','time': '13:00-15:00','bookedBy': 'John Doe','approvedBy': 'Dr. Smith','status': 'reserved'},
-    {'room': 'Study Room D','date': '2025-10-18','time': '8:00-10:00','bookedBy': 'John Doe','approvedBy': 'Dr. Smith','status': 'rejected'},
-    {'room': 'Seminar Room C','date': '2025-10-21','time': '13:00-15:00','bookedBy': 'Jane Student','approvedBy': 'Dr. Smith','status': 'reserved'},
-    {'room': 'Conference Room A','date': '2025-10-21','time': '10:00-12:00','bookedBy': 'John Doe','approvedBy': null,'status': 'pending'},
-  ];
+  List<Map<String, String?>> _makeFakeHistory(String role) {
+    final uname = (Session.username ?? '').trim();
+    final now = DateTime.now();
+    final rooms = ['Conference Room A', 'Meeting Room B', 'Seminar Room C', 'Study Room D'];
+    final slots = ['8:00-10:00', '10:00-12:00', '13:00-15:00', '15:00-17:00'];
+    final statuses = ['reserved', 'rejected'];
 
-  List<Map<String, String?>> _filtered(String role) {
-    if (role == 'student') {
-      return _log.where((e) => e['bookedBy'] == 'John Doe').toList();
-    } else if (role == 'lecturer') {
-      return _log.where((e) => (e['approvedBy'] ?? '').isNotEmpty).toList();
-    } else {
-      return _log;
+    String studentName() => uname.isNotEmpty ? uname : 'Student A';
+    String lecturerName() => uname.isNotEmpty ? uname : 'Dr. Smith';
+
+    String dateDaysAgo(int d) {
+      final dt = now.subtract(Duration(days: d));
+      final mm = dt.month.toString().padLeft(2, '0');
+      final dd = dt.day.toString().padLeft(2, '0');
+      return '${dt.year}-$mm-$dd';
     }
+
+    final List<Map<String, String?>> list = [];
+
+    if (role == 'student') {
+      // History of himself/herself (3 items)
+      for (int i = 0; i < 3; i++) {
+        list.add({
+          'room': rooms[i % rooms.length],
+          'date': dateDaysAgo(i + 1),
+          'time': slots[i % slots.length],
+          'bookedBy': studentName(),
+          'approvedBy': i % 2 == 0 ? lecturerName() : null,
+          'status': statuses[i % statuses.length],
+        });
+      }
+    } else if (role == 'lecturer') {
+      // History of himself/herself as approver (3 items)
+      for (int i = 0; i < 3; i++) {
+        list.add({
+          'room': rooms[(i + 1) % rooms.length],
+          'date': dateDaysAgo(i + 1),
+          'time': slots[(i + 1) % slots.length],
+          'bookedBy': 'Student ${String.fromCharCode(65 + (i % 5))}',
+          'approvedBy': lecturerName(),
+          'status': statuses[i % statuses.length],
+        });
+      }
+    } else {
+      // Staff: history of all lecturers (3 items)
+      final lecturers = ['Dr. Smith', 'Prof. Lee', 'Dr. Chan', 'Prof. Kumar'];
+      for (int i = 0; i < 3; i++) {
+        list.add({
+          'room': rooms[(i + 2) % rooms.length],
+          'date': dateDaysAgo(i + 1),
+          'time': slots[(i + 2) % slots.length],
+          'bookedBy': 'Student ${String.fromCharCode(65 + (i % 6))}',
+          'approvedBy': lecturers[i % lecturers.length],
+          'status': statuses[i % statuses.length],
+        });
+      }
+    }
+
+    return list;
   }
 
   Color _statusColor(String? s) => switch (s) {
@@ -35,7 +80,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered(widget.role);
+    final items = _makeFakeHistory(widget.role);
     return Scaffold(
       appBar: AppBar(
         

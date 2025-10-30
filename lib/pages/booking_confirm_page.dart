@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/date_utils.dart';
+import '../utils/booking_state.dart';
 
 class BookingConfirmPage extends StatelessWidget {
   final Map<String, dynamic> room;
@@ -70,6 +71,7 @@ class BookingConfirmPage extends StatelessWidget {
                     actions: [
                       TextButton(
                         onPressed: () {
+                          BookingState.markBookedNow();
                           Navigator.of(context).pop(); // dialog
                           Navigator.of(context).pop(); // confirm page
                           Navigator.of(context).pop(); // detail page
