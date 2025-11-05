@@ -20,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
 
-  //API SERVICE DIRECTLY IN THE PAGE
+  
   static const String _baseUrl = 'http://192.168.240.1:3000'; 
   Future<Map<String, dynamic>> _registerToApi({
     required String username,
