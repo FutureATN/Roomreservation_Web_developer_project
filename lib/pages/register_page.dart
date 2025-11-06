@@ -227,7 +227,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                   child: const Text(
                     'Already have an account? Login',
-                    style: const TextStyle(color: AppColors.primary, fontSize: 16),
+                    style: TextStyle(color: AppColors.primary, fontSize: 16),
                   ),
                 ),
                 const SizedBox(height: 20),

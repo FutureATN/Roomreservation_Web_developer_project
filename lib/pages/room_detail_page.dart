@@ -121,7 +121,7 @@ class RoomDetailPage extends StatelessWidget {
                         : null,
                   ),
                 );
-              }).toList(),
+              }),
             ]),
           ),
         ]),

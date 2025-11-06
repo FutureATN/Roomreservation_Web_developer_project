@@ -5,7 +5,7 @@ import '../utils/app_colors.dart';
 
 class RoomListPage extends StatefulWidget {
   final String role;
-  RoomListPage({super.key, required this.role});
+  const RoomListPage({super.key, required this.role});
 
   @override
   State<RoomListPage> createState() => _RoomListPageState();

@@ -45,7 +45,7 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
             TextField(controller: floorCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Floor', prefixIcon: Icon(Icons.layers))),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: status,
+              initialValue: status,
               items: const [
                 DropdownMenuItem(value: 'free', child: Text('Free')),
                 DropdownMenuItem(value: 'pending', child: Text('Pending')),

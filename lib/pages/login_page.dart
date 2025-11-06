@@ -146,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                           shadowColor: AppColors.primary.withOpacity(0.5),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ).copyWith(
-                          overlayColor: MaterialStateProperty.all(AppColors.primaryLight.withOpacity(0.2)),
+                          overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withOpacity(0.2)),
                         ),
                         onPressed: _login,
                         child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 1)),
