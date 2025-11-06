@@ -13,7 +13,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -25,7 +24,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<Map<String, dynamic>> _registerToApi({
     required String username,
     required String password,
-    required String studentId,
     required String fullName,
   }) async {
     try {
@@ -35,7 +33,6 @@ class _RegisterPageState extends State<RegisterPage> {
         body: json.encode({
           'username': username,
           'password': password,
-          'studentId': studentId,
           'fullName': fullName,
         }),
       );
@@ -68,7 +65,6 @@ class _RegisterPageState extends State<RegisterPage> {
       final response = await _registerToApi(
         username: _usernameController.text,
         password: _passwordController.text,
-        studentId: _idController.text,
         fullName: _nameController.text,
       );
 
@@ -124,7 +120,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _idController.dispose();
     _nameController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -167,33 +162,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         const SizedBox(height: 30),
-                        
-                        // Student ID Field
-                        TextFormField(
-                          controller: _idController,
-                          validator: (value) => _validateRequired(value, 'Student ID'),
-                          style: TextStyle(color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            labelText: 'Student ID',
-                            labelStyle: TextStyle(color: AppColors.textSecondary),
-                            prefixIcon: Icon(Icons.badge, color: AppColors.primary),
-                            filled: true,
-                            fillColor: AppColors.surfaceLight,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.primary, width: 2),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
                         
                         // Full Name Field
                         TextFormField(
