@@ -1,6 +1,8 @@
 class BookingState {
   static DateTime? _lastBookedAt;
 
+  static var userId;
+
   static bool hasBookedToday() {
     if (_lastBookedAt == null) return false;
     final now = DateTime.now();

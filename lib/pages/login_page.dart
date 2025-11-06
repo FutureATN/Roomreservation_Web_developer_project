@@ -20,8 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
 
   // ---- เปลี่ยน BASE_URL ตรงนี้ถ้าไปรันบนมือถือจริง (ใช้ IP เครื่องคอมของคุณแทน 10.0.2.2)
- static const String _baseUrl = 'http://192.168.240.1:3000';
-
+  static const String _baseUrl = 'http://192.168.238.1:3001';
 
   Future<void> _login() async {
     final username = _usernameController.text.trim();
@@ -35,25 +34,39 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = true);
     try {
       final url = Uri.parse('$_baseUrl/api/login');
-      final resp = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
-      ).timeout(const Duration(seconds: 12));
+      final resp = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'username': username, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 12));
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         if (data['success'] == true) {
-          // server ส่ง role กลับมาเป็นตัวเลข (0,1,2)
-          final int roleInt = data['user']?['role'] is int
-              ? data['user']['role']
-              : int.tryParse('${data['user']?['role']}') ?? 0;
+          final user = data['user'];
 
+          // Parse id safely (can be int or string)
+          final int userId = user['id'] is int
+              ? user['id'] as int
+              : int.tryParse('${user['id']}') ?? 0;
+
+          // role int → string
+          final int roleInt = user['role'] is int
+              ? user['role']
+              : int.tryParse('${user['role']}') ?? 0;
           final String roleStr = _roleString(roleInt);
 
           if (!mounted) return;
-          Session.username = data['user']?['username'] ?? username;
+
+          // 🔴 THIS WAS MISSING:
+          Session.userId = userId; // <-- REQUIRED
+          Session.username = user['username'] ?? username;
           Session.role = roleStr;
+
+          // (Optional) if your booking page reads from BookingState:
+          // BookingState.userId = userId;
 
           Navigator.pushReplacement(
             context,
@@ -96,9 +109,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -139,12 +150,15 @@ class _LoginPageState extends State<LoginPage> {
                       gradient: LinearGradient(
                         colors: [
                           AppColors.primary.withOpacity(0.2),
-                          AppColors.accent.withOpacity(0.2)
+                          AppColors.accent.withOpacity(0.2),
                         ],
                       ),
                     ),
-                    child: const Icon(Icons.meeting_room_outlined,
-                        size: 48, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.meeting_room_outlined,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -162,26 +176,33 @@ class _LoginPageState extends State<LoginPage> {
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       labelText: 'Username',
-                      labelStyle:
-                          const TextStyle(color: AppColors.textSecondary),
-                      prefixIcon: const Icon(Icons.person_outline,
-                          color: AppColors.primary),
+                      labelStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        color: AppColors.primary,
+                      ),
                       filled: true,
                       fillColor: AppColors.surfaceLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.3)),
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.3)),
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary, width: 2),
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -193,26 +214,33 @@ class _LoginPageState extends State<LoginPage> {
                     onSubmitted: (_) => _loading ? null : _login(),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle:
-                          const TextStyle(color: AppColors.textSecondary),
-                      prefixIcon: const Icon(Icons.lock_outline,
-                          color: AppColors.primary),
+                      labelStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.primary,
+                      ),
                       filled: true,
                       fillColor: AppColors.surfaceLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.3)),
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary.withOpacity(0.3)),
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: AppColors.primary, width: 2),
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -221,18 +249,20 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 50,
                     child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.background,
-                        elevation: 0,
-                        shadowColor: AppColors.primary.withOpacity(0.5),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ).copyWith(
-                        overlayColor: MaterialStateProperty.all(
-                          AppColors.primaryLight.withOpacity(0.2),
-                        ),
-                      ),
+                      style:
+                          FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.background,
+                            elevation: 0,
+                            shadowColor: AppColors.primary.withOpacity(0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ).copyWith(
+                            overlayColor: MaterialStateProperty.all(
+                              AppColors.primaryLight.withOpacity(0.2),
+                            ),
+                          ),
                       onPressed: _loading ? null : _login,
                       child: _loading
                           ? const SizedBox(
@@ -258,7 +288,8 @@ class _LoginPageState extends State<LoginPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const RegisterPage()),
+                                builder: (_) => const RegisterPage(),
+                              ),
                             );
                           },
                     child: const Text(

@@ -12,7 +12,7 @@ class RoomDetailPage extends StatelessWidget {
   const RoomDetailPage({super.key, required this.room, required this.role});
 
   // ========== API SERVICE ==========
-  static const String _baseUrl = 'http://192.168.240.1:3001'; // ← YOUR IP
+   static const String _baseUrl = 'http://192.168.238.1:3001';
 
   Future<Map<String, dynamic>> _fetchRoomDetails() async {
     try {
