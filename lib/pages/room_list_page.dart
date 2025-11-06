@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../utils/date_utils.dart';
 import '../utils/booking_state.dart';
 import '../utils/app_colors.dart';
+import 'booking_confirm_page.dart';
 
 class RoomListPage extends StatefulWidget {
   final String role;
@@ -14,17 +17,44 @@ class RoomListPage extends StatefulWidget {
 class _RoomListPageState extends State<RoomListPage> {
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentPage = 0;
+  List<Map<String, dynamic>> rooms = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> rooms = const [
-    {'id': 1, 'name': 'Conference Room A', 'capacity': 20, 'floor': 1},
-    {'id': 2, 'name': 'Meeting Room B', 'capacity': 10, 'floor': 2},
-    {'id': 3, 'name': 'Seminar Room C', 'capacity': 50, 'floor': 3},
-    {'id': 4, 'name': 'Study Room D', 'capacity': 8, 'floor': 1},
-  ];
+  // ========== API SERVICE ==========
+  static const String _baseUrl = 'http://192.168.240.1:3001'; // ← YOUR IP
+
+  Future<List<Map<String, dynamic>>> _fetchRooms() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/api/rooms'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        print('Failed to load rooms: ${response.statusCode}');
+        // Return fallback data
+        return const [
+          {'id': 1, 'name': 'Conference Room A', 'capacity': 20, 'floor': 1},
+          {'id': 2, 'name': 'Meeting Room B', 'capacity': 10, 'floor': 2},
+          {'id': 3, 'name': 'Seminar Room C', 'capacity': 50, 'floor': 3},
+          {'id': 4, 'name': 'Study Room D', 'capacity': 8, 'floor': 1},
+        ];
+      }
+    } catch (e) {
+      print('Error fetching rooms: $e');
+      return const [
+        {'id': 1, 'name': 'Conference Room A', 'capacity': 20, 'floor': 1},
+        {'id': 2, 'name': 'Meeting Room B', 'capacity': 10, 'floor': 2},
+        {'id': 3, 'name': 'Seminar Room C', 'capacity': 50, 'floor': 3},
+        {'id': 4, 'name': 'Study Room D', 'capacity': 8, 'floor': 1},
+      ];
+    }
+  }
+  // ========== END API SERVICE ==========
 
   @override
   void initState() {
     super.initState();
+    _loadRooms();
     _pageController.addListener(() {
       int next = _pageController.page!.round();
       if (_currentPage != next) {
@@ -39,269 +69,20 @@ class _RoomListPageState extends State<RoomListPage> {
     super.dispose();
   }
 
+  Future<void> _loadRooms() async {
+    final fetchedRooms = await _fetchRooms();
+    setState(() {
+      rooms = fetchedRooms;
+      _isLoading = false;
+    });
+  }
+
   List<Map<String, String>> get _timeSlots => const [
         {'time': '8:00-10:00', 'status': 'free'},
         {'time': '10:00-12:00', 'status': 'free'},
         {'time': '13:00-15:00', 'status': 'free'},
         {'time': '15:00-17:00', 'status': 'free'},
       ];
-
-  @override
-  Widget build(BuildContext context) {
-    final todayStr = formatTodayLong();
-    final now = DateTime.now();
-    final isStudent = widget.role == 'student';
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: false,
-        title: const Text(
-          'Browse Rooms',
-          style: TextStyle(
-            fontWeight: FontWeight.w300,
-            fontSize: 24,
-            letterSpacing: 0.5,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textSecondary),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Date info banner
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.surface, AppColors.surfaceLight],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    todayStr,
-                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w400),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Page indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(rooms.length, (index) {
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: _currentPage == index ? 24 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: _currentPage == index ? AppColors.primary : AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 16),
-          
-          // Room cards
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: rooms.length,
-              itemBuilder: (context, index) {
-                final r = rooms[index];
-                final name = (r['name'] ?? 'Unknown Room').toString();
-                final floor = r['floor'] is int ? r['floor'] as int : int.tryParse('${r['floor']}') ?? 0;
-                final cap = r['capacity'] is int ? r['capacity'] as int : int.tryParse('${r['capacity']}') ?? 0;
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.surface, AppColors.surfaceLight],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Room header
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
-                          ),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(Icons.meeting_room_outlined, color: AppColors.primary, size: 28),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Floor $floor • $cap people',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Time slots
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Available Time Slots',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Expanded(
-                                child: GridView.builder(
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 12,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 2.5,
-                                  ),
-                                  itemCount: _timeSlots.length,
-                                  itemBuilder: (context, i) {
-                                    final slot = _timeSlots[i];
-                                    final time = (slot['time'] ?? '').toString();
-                                    final start = time.split('-').first;
-                                    int sh = 0, sm = 0;
-                                    if (start.contains(':')) {
-                                      final hm = start.split(':');
-                                      sh = int.tryParse(hm[0]) ?? 0;
-                                      sm = int.tryParse(hm[1]) ?? 0;
-                                    }
-                                    final slotStart = DateTime(now.year, now.month, now.day, sh, sm);
-                                    final isPast = now.isAfter(slotStart);
-                                    final hasBooked = isStudent && BookingState.hasBookedToday();
-                                    final enabled = isStudent && !isPast && !hasBooked;
-
-                                    return InkWell(
-                                      onTap: enabled ? () => _showBookingDialog(context, r, time) : null,
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: enabled
-                                              ? LinearGradient(
-                                                  colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
-                                                )
-                                              : null,
-                                          color: enabled ? null : AppColors.disabled.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: enabled ? AppColors.primary : AppColors.disabled,
-                                            width: enabled ? 1.5 : 1,
-                                          ),
-                                          boxShadow: enabled
-                                              ? [
-                                                  BoxShadow(
-                                                    color: AppColors.primary.withOpacity(0.3),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            time,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                              color: enabled ? AppColors.primary : AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showBookingDialog(BuildContext context, Map<String, dynamic> room, String timeSlot) {
     showDialog(
@@ -370,6 +151,265 @@ class _RoomListPageState extends State<RoomListPage> {
           ),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final todayStr = formatTodayLong();
+    final now = DateTime.now();
+    final isStudent = widget.role == 'student';
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        title: const Text(
+          'Browse Rooms',
+          style: TextStyle(
+            fontWeight: FontWeight.w300,
+            fontSize: 24,
+            letterSpacing: 0.5,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textSecondary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Date info banner
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.surface, AppColors.surfaceLight],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          todayStr,
+                          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Page indicator
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(rooms.length, (index) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == index ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _currentPage == index ? AppColors.primary : AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                
+                // Room cards
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: rooms.length,
+                    itemBuilder: (context, index) {
+                      final r = rooms[index];
+                      final name = (r['name'] ?? 'Unknown Room').toString();
+                      final floor = r['floor'] is int ? r['floor'] as int : int.tryParse('${r['floor']}') ?? 0;
+                      final cap = r['capacity'] is int ? r['capacity'] as int : int.tryParse('${r['capacity']}') ?? 0;
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppColors.surface, AppColors.surfaceLight],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Room header
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(20),
+                                  topRight: Radius.circular(20),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(Icons.meeting_room_outlined, color: AppColors.primary, size: 28),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Floor $floor • $cap people',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Time slots
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Available Time Slots',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Expanded(
+                                      child: GridView.builder(
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 12,
+                                          crossAxisSpacing: 12,
+                                          childAspectRatio: 2.5,
+                                        ),
+                                        itemCount: _timeSlots.length,
+                                        itemBuilder: (context, i) {
+                                          final slot = _timeSlots[i];
+                                          final time = (slot['time'] ?? '').toString();
+                                          final start = time.split('-').first;
+                                          int sh = 0, sm = 0;
+                                          if (start.contains(':')) {
+                                            final hm = start.split(':');
+                                            sh = int.tryParse(hm[0]) ?? 0;
+                                            sm = int.tryParse(hm[1]) ?? 0;
+                                          }
+                                          final slotStart = DateTime(now.year, now.month, now.day, sh, sm);
+                                          final isPast = now.isAfter(slotStart);
+                                          final hasBooked = isStudent && BookingState.hasBookedToday();
+                                          final enabled = isStudent && !isPast && !hasBooked;
+
+                                          return InkWell(
+                                            onTap: enabled ? () => _showBookingDialog(context, r, time) : null,
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                gradient: enabled
+                                                    ? LinearGradient(
+                                                        colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
+                                                      )
+                                                    : null,
+                                                color: enabled ? null : AppColors.disabled.withOpacity(0.3),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: enabled ? AppColors.primary : AppColors.disabled,
+                                                  width: enabled ? 1.5 : 1,
+                                                ),
+                                                boxShadow: enabled
+                                                    ? [
+                                                        BoxShadow(
+                                                          color: AppColors.primary.withOpacity(0.3),
+                                                          blurRadius: 8,
+                                                          offset: const Offset(0, 2),
+                                                        ),
+                                                      ]
+                                                    : null,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  time,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: enabled ? AppColors.primary : AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

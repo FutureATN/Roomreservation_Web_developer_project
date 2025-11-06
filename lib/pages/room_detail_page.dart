@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../utils/date_utils.dart';
 import 'booking_confirm_page.dart';
 import '../utils/booking_state.dart';
+import '../utils/app_colors.dart';
 
 class RoomDetailPage extends StatelessWidget {
   final Map<String, dynamic> room;
   final String role;
   const RoomDetailPage({super.key, required this.room, required this.role});
+
+  // ========== API SERVICE ==========
+  static const String _baseUrl = 'http://192.168.240.1:3001'; // ← YOUR IP
+
+  Future<Map<String, dynamic>> _fetchRoomDetails() async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/api/rooms/${room['id']}'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['room'] ?? room; // Return API data or fallback to passed room
+      } else {
+        print('Failed to load room details: ${response.statusCode}');
+        return room; // Return passed room as fallback
+      }
+    } catch (e) {
+      print('Error fetching room details: $e');
+      return room; // Return passed room as fallback
+    }
+  }
+  // ========== END API SERVICE ==========
 
   final List<Map<String, String>> timeSlots = const [
     {'time': '8:00-10:00',  'status': 'free'},
