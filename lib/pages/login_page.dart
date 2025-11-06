@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'register_page.dart';
 import 'dashboard_page.dart';
 import '../utils/session.dart';
@@ -14,24 +17,88 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _loading = false;
+
+  // ---- เปลี่ยน BASE_URL ตรงนี้ถ้าไปรันบนมือถือจริง (ใช้ IP เครื่องคอมของคุณแทน 10.0.2.2)
+ static const String _baseUrl = 'http://192.168.240.1:3000';
+
+
   Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
-    final role = _detectRoleFromCredentials(username, password);
-    if (!mounted) return;
-    Session.username = username;
-    Session.role = role;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => DashboardPage(role: role)),
-    );
+
+    if (username.isEmpty || password.isEmpty) {
+      _showSnack('Please enter username and password');
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final url = Uri.parse('$_baseUrl/api/login');
+      final resp = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      ).timeout(const Duration(seconds: 12));
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['success'] == true) {
+          // server ส่ง role กลับมาเป็นตัวเลข (0,1,2)
+          final int roleInt = data['user']?['role'] is int
+              ? data['user']['role']
+              : int.tryParse('${data['user']?['role']}') ?? 0;
+
+          final String roleStr = _roleString(roleInt);
+
+          if (!mounted) return;
+          Session.username = data['user']?['username'] ?? username;
+          Session.role = roleStr;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => DashboardPage(role: roleStr)),
+          );
+        } else {
+          _showSnack(data['message']?.toString() ?? 'Login failed');
+        }
+      } else if (resp.statusCode == 401) {
+        // จาก server: Wrong username / Wrong password / Invalid credentials
+        final data = _safeJson(resp.body);
+        _showSnack(data?['message']?.toString() ?? 'Invalid credentials');
+      } else {
+        _showSnack('Server error (${resp.statusCode})');
+      }
+    } catch (e) {
+      _showSnack('Network error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  String _detectRoleFromCredentials(String username, String password) {
-    final u = username.toLowerCase();
-    if (u.startsWith('staff')) return 'staff';
-    if (u.startsWith('lec')) return 'lecturer';
-    return 'student';
+  Map<String, dynamic>? _safeJson(String body) {
+    try {
+      return jsonDecode(body) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _roleString(int r) {
+    switch (r) {
+      case 1:
+        return 'staff';
+      case 2:
+        return 'lecturer';
+      default:
+        return 'student'; // 0 or unknown
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
@@ -41,129 +108,165 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // role detection will replace the previous manual selector
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Container(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Card(
-              margin: const EdgeInsets.all(24),
-              elevation: 8,
-              color: AppColors.surface,
-              shadowColor: AppColors.primary.withOpacity(0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: AppColors.primary.withOpacity(0.3), width: 1),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Card(
+            margin: const EdgeInsets.all(24),
+            elevation: 8,
+            color: AppColors.surface,
+            shadowColor: AppColors.primary.withOpacity(0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: AppColors.primary.withOpacity(0.3),
+                width: 1,
               ),
-              child: Container(
-                padding: const EdgeInsets.all(40),
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary.withOpacity(0.2), AppColors.accent.withOpacity(0.2)],
-                        ),
-                      ),
-                      child: const Icon(Icons.meeting_room_outlined, size: 48, color: AppColors.primary),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Room Reservation',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w300,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 1.5,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(40),
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.2),
+                          AppColors.accent.withOpacity(0.2)
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 40),
-                    TextField(
-                      controller: _usernameController,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        labelText: 'Username',
-                        labelStyle: const TextStyle(color: AppColors.textSecondary),
-                        prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
-                        filled: true,
-                        fillColor: AppColors.surfaceLight,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                        ),
+                    child: const Icon(Icons.meeting_room_outlined,
+                        size: 48, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Room Reservation',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  TextField(
+                    controller: _usernameController,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Username',
+                      labelStyle:
+                          const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.person_outline,
+                          color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary, width: 2),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: const TextStyle(color: AppColors.textSecondary),
-                        prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
-                        filled: true,
-                        fillColor: AppColors.surfaceLight,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                        ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    onSubmitted: (_) => _loading ? null : _login(),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle:
+                          const TextStyle(color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.lock_outline,
+                          color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: AppColors.primary, width: 2),
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.background,
-                          elevation: 0,
-                          shadowColor: AppColors.primary.withOpacity(0.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ).copyWith(
-                          overlayColor: MaterialStateProperty.all(AppColors.primaryLight.withOpacity(0.2)),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.background,
+                        elevation: 0,
+                        shadowColor: AppColors.primary.withOpacity(0.5),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ).copyWith(
+                        overlayColor: MaterialStateProperty.all(
+                          AppColors.primaryLight.withOpacity(0.2),
                         ),
-                        onPressed: _login,
-                        child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 1)),
                       ),
+                      onPressed: _loading ? null : _login,
+                      child: _loading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1,
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 15),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const RegisterPage()),
-                        );
-                      },
-                      child: const Text('Don\'t have an account? Register', style: TextStyle(color: AppColors.primary)),
+                  ),
+                  const SizedBox(height: 15),
+                  TextButton(
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const RegisterPage()),
+                            );
+                          },
+                    child: const Text(
+                      'Don\'t have an account? Register',
+                      style: TextStyle(color: AppColors.primary),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
