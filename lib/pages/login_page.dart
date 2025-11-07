@@ -1,4 +1,6 @@
+// lib/pages/login_page.dart
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,6 +8,7 @@ import 'register_page.dart';
 import 'dashboard_page.dart';
 import '../utils/session.dart';
 import '../utils/app_colors.dart';
+import '../utils/booking_state.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,8 +22,16 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _loading = false;
 
-  // ---- เปลี่ยน BASE_URL ตรงนี้ถ้าไปรันบนมือถือจริง (ใช้ IP เครื่องคอมของคุณแทน 10.0.2.2)
-  static const String _baseUrl = 'http://192.168.238.1:3001';
+  /// เลือก BASE_URL ให้ถูกอัตโนมัติ
+  String get _baseUrl {
+    // ถ้าอยาก override ตอน build: --dart-define=API_BASE_URL=http://192.168.1.50:3001
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
+
+    if (Platform.isAndroid)
+      return 'http://192.168.238.1:3001'; // Android emulator
+    return 'http://127.0.0.1:3001'; // run desktop/web pointing to local
+  }
 
   Future<void> _login() async {
     final username = _usernameController.text.trim();
@@ -45,14 +56,14 @@ class _LoginPageState extends State<LoginPage> {
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         if (data['success'] == true) {
-          final user = data['user'];
+          final user = data['user'] ?? {};
 
-          // Parse id safely (can be int or string)
+          // Parse id safely (รองรับ int/string)
           final int userId = user['id'] is int
               ? user['id'] as int
               : int.tryParse('${user['id']}') ?? 0;
 
-          // role int → string
+          // role int -> string
           final int roleInt = user['role'] is int
               ? user['role']
               : int.tryParse('${user['role']}') ?? 0;
@@ -60,13 +71,28 @@ class _LoginPageState extends State<LoginPage> {
 
           if (!mounted) return;
 
-          // 🔴 THIS WAS MISSING:
-          Session.userId = userId; // <-- REQUIRED
-          Session.username = user['username'] ?? username;
-          Session.role = roleStr;
+          // เซฟลง Session ให้หน้าต่าง ๆ อ่านได้
+          // หลัง parse userId/roleStr แล้ว
+          Session.set(
+            id: userId,
+            name: user['username'] ?? username,
+            r: roleStr,
+          );
+          BookingState.currentUserId = userId; // ถ้ามีกฎวันละ 1 ครั้ง
 
-          // (Optional) if your booking page reads from BookingState:
-          // BookingState.userId = userId;
+          // (debug ช่วยเช็ค)
+          print(
+            'LOGIN -> id=${Session.userId}, name=${Session.username}, role=${Session.role}',
+          );
+
+          // ผูก BookingState กับผู้ใช้ปัจจุบัน (เพื่อกฎ "วันละ 1 ครั้ง" แบบรายคน)
+          BookingState.currentUserId = userId;
+
+          // debug ช่วยเช็ค
+          // ignore: avoid_print
+          print(
+            'LOGIN OK -> id=$userId, name=${Session.username}, role=$roleStr, baseUrl=$_baseUrl',
+          );
 
           Navigator.pushReplacement(
             context,
@@ -76,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
           _showSnack(data['message']?.toString() ?? 'Login failed');
         }
       } else if (resp.statusCode == 401) {
-        // จาก server: Wrong username / Wrong password / Invalid credentials
+        // Wrong username / password
         final data = _safeJson(resp.body);
         _showSnack(data?['message']?.toString() ?? 'Invalid credentials');
       } else {
@@ -199,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
+                        borderSide: const BorderSide(
                           color: AppColors.primary,
                           width: 2,
                         ),
@@ -237,7 +263,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
+                        borderSide: const BorderSide(
                           color: AppColors.primary,
                           width: 2,
                         ),

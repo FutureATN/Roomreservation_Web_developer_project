@@ -3,12 +3,11 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:roomreservation/utils/session.dart';
 
-import '../utils/date_utils.dart';      // formatTodayLong()
-import '../utils/booking_state.dart';   // BookingState.hasBookedToday(), markBookedNow()
+import '../utils/session.dart';
+import '../utils/date_utils.dart';
+import '../utils/booking_state.dart';
 import '../utils/app_colors.dart';
-import 'booking_confirm_page.dart';     // (optional) if you want to navigate after booking
 
 class RoomListPage extends StatefulWidget {
   final String role; // 'student' | 'lecturer' | 'staff'
@@ -19,22 +18,28 @@ class RoomListPage extends StatefulWidget {
 }
 
 class _RoomListPageState extends State<RoomListPage> {
-  // ---------- BASE URL ----------
-  // Use 10.0.2.2 for Android emulator; for real device, pass your PC LAN IP at runtime:
-  // flutter run --dart-define=API_BASE_URL=http://192.168.1.23:3001
-static const String _baseUrl = 'http://192.168.238.1:3001';
+  // -------- BASE URL (เลือกอัตโนมัติ) --------
+  String get _baseUrl {
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
+    if (Platform.isAndroid) return 'http://192.168.238.1:3001'; // emulator
+    return 'http://127.0.0.1:3001';
+  }
 
-  // ---------- STATE ----------
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentPage = 0;
+
   List<Map<String, dynamic>> rooms = [];
   bool _isLoading = true;
   String? _error;
 
+  // ✅ สถานะ “วันนี้จองไปแล้วหรือยัง” จากฝั่งเซิร์ฟเวอร์
+  bool _hasBookedTodayServer = false;
+
   @override
   void initState() {
     super.initState();
-    _loadRooms();
+    _initPage();
     _pageController.addListener(() {
       final p = _pageController.page;
       if (p != null) {
@@ -44,30 +49,75 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
     });
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  // ---------- API: ROOMS ----------
-  Future<void> _loadRooms() async {
+  Future<void> _initPage() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final data = await _fetchRooms();
-      setState(() {
-        rooms = data;
-        _isLoading = false;
-      });
+      await Future.wait([_refreshBookedTodayFlag(), _loadRooms()]);
+      setState(() => _isLoading = false);
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // ---------- helpers ----------
+  String _todayIso() {
+    final now = DateTime.now();
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$mm-$dd';
+  }
+
+  // ---------- API: check “booked today?” (server) ----------
+  Future<void> _refreshBookedTodayFlag() async {
+    final uid = Session.userId;
+    if (uid == null) {
+      _hasBookedTodayServer = false;
+      return;
+    }
+    final uri = Uri.parse('$_baseUrl/api/bookings/today')
+        .replace(queryParameters: {'userId': '$uid', 'date': _todayIso()});
+
+    try {
+      final res = await http.get(uri, headers: {'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        final booked = (body is Map && body['success'] == true)
+            ? (body['booked'] == true)
+            : false;
+
+        setState(() {
+          _hasBookedTodayServer = booked;
+        });
+
+        // sync กับ state ฝั่งแอป (กัน UI เพี้ยน)
+        if (booked) {
+          BookingState.markBookedNow();
+        }
+      } else {
+        // ถ้าเซิร์ฟเวอร์ยังไม่มี endpoint นี้: ใช้ state ฝั่งแอปแทนเป็น fallback
+        setState(() => _hasBookedTodayServer = BookingState.hasBookedToday());
+      }
+    } catch (_) {
+      setState(() => _hasBookedTodayServer = BookingState.hasBookedToday());
+    }
+  }
+
+  // ---------- API: rooms ----------
+  Future<void> _loadRooms() async {
+    final data = await _fetchRooms();
+    setState(() => rooms = data);
   }
 
   Future<List<Map<String, dynamic>>> _fetchRooms() async {
@@ -77,8 +127,6 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
-        // Accept either: [{...}, {...}] OR { success:true, data:[...] }
         if (decoded is List) {
           return decoded.cast<Map<String, dynamic>>();
         } else if (decoded is Map && decoded['data'] is List) {
@@ -88,15 +136,14 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
         }
       }
 
-      // Fallback data if server returns non-200 (useful while wiring)
+      // fallback
       return const [
         {'id': 1, 'name': 'Conference Room A', 'capacity': 20, 'floor': 1},
         {'id': 2, 'name': 'Meeting Room B', 'capacity': 10, 'floor': 2},
         {'id': 3, 'name': 'Seminar Room C', 'capacity': 50, 'floor': 3},
         {'id': 4, 'name': 'Study Room D', 'capacity': 8,  'floor': 1},
       ];
-    } catch (e) {
-      // Fallback on network error, so UI still works
+    } catch (_) {
       return const [
         {'id': 1, 'name': 'Conference Room A', 'capacity': 20, 'floor': 1},
         {'id': 2, 'name': 'Meeting Room B', 'capacity': 10, 'floor': 2},
@@ -106,14 +153,7 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
     }
   }
 
-  // ---------- API: CREATE BOOKING ----------
-  String _todayIso() {
-    final now = DateTime.now();
-    final mm = now.month.toString().padLeft(2, '0');
-    final dd = now.day.toString().padLeft(2, '0');
-    return '${now.year}-$mm-$dd';
-  }
-
+  // ---------- API: create booking ----------
   Future<void> _submitBooking({
     required int userId,
     required int roomId,
@@ -134,13 +174,18 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
     if (res.statusCode != 200) {
       throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
+
     final body = json.decode(res.body);
     if (body is! Map || body['success'] != true) {
-      throw Exception('Bad payload: $body');
+      // ถ้า backend ป้องกันไว้แล้วจะส่ง {success:false, message:'...'} ก็แสดงให้ผู้ใช้รู้
+      final msg = (body is Map && body['message'] != null)
+          ? body['message'].toString()
+          : 'Bad payload: $body';
+      throw Exception(msg);
     }
   }
 
-  // ---------- TIMESLOTS ----------
+  // ---------- timeslots ----------
   List<Map<String, String>> get _timeSlots => const [
         {'time': '8:00-10:00',  'status': 'free'},
         {'time': '10:00-12:00', 'status': 'free'},
@@ -148,7 +193,7 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
         {'time': '18:00-21:00', 'status': 'free'},
       ];
 
-  // ---------- DIALOG ----------
+  // ---------- dialog ----------
   void _showBookingDialog(BuildContext context, Map<String, dynamic> room, String timeSlot) {
     showDialog(
       context: context,
@@ -185,42 +230,39 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
-  Navigator.of(context).pop();
+              Navigator.of(context).pop();
+              final snack = ScaffoldMessenger.of(context);
 
-  final snack = ScaffoldMessenger.of(context);
+              final userId = Session.userId;
+              final roomId = room['id'] is int ? room['id'] as int : int.tryParse('${room['id']}') ?? 0;
 
-  // ✅ ใช้ Session.userId
-  final userId = Session.userId;  // <— ต้องไม่เป็น null
-  final roomId = room['id'] is int
-      ? room['id'] as int
-      : int.tryParse('${room['id']}') ?? 0;
+              if (userId == null || roomId == 0) {
+                snack.showSnackBar(const SnackBar(
+                  content: Text('Missing userId or roomId'),
+                  backgroundColor: AppColors.error,
+                ));
+                return;
+              }
 
-  if (userId == null || roomId == 0) {
-    snack.showSnackBar(const SnackBar(
-      content: Text('Missing userId or roomId'),
-      backgroundColor: AppColors.error,
-    ));
-    return;
-  }
+              try {
+                snack.showSnackBar(const SnackBar(content: Text('Submitting booking...')));
+                await _submitBooking(userId: userId, roomId: roomId, timeSlot: timeSlot);
 
-  try {
-    snack.showSnackBar(const SnackBar(content: Text('Submitting booking...')));
-    await _submitBooking(userId: userId, roomId: roomId, timeSlot: timeSlot);
+                // sync ทั้ง server และ client
+                BookingState.markBookedNow();
+                setState(() => _hasBookedTodayServer = true);
 
-    BookingState.markBookedNow();
-    snack.showSnackBar(const SnackBar(
-      content: Text('Booking submitted successfully'),
-      backgroundColor: AppColors.primary,
-    ));
-    setState(() {}); // รีเฟรชสถานะปุ่ม
-  } catch (e) {
-    snack.showSnackBar(SnackBar(
-      content: Text('Booking failed: $e'),
-      backgroundColor: AppColors.error,
-    ));
-  }
-},
-
+                snack.showSnackBar(const SnackBar(
+                  content: Text('Booking submitted successfully'),
+                  backgroundColor: AppColors.primary,
+                ));
+              } catch (e) {
+                snack.showSnackBar(SnackBar(
+                  content: Text('Booking failed: $e'),
+                  backgroundColor: AppColors.error,
+                ));
+              }
+            },
             child: const Text('Confirm'),
           ),
         ],
@@ -268,14 +310,21 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
           icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: AppColors.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh booking rule',
+            onPressed: _refreshBookedTodayFlag,
+            icon: const Icon(Icons.refresh),
+          )
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _Error(message: _error!, onRetry: _loadRooms)
+              ? _Error(message: _error!, onRetry: _initPage)
               : Column(
                   children: [
-                    // Date banner
+                    // date & rule banner
                     Container(
                       margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(16),
@@ -283,20 +332,38 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                         gradient: LinearGradient(colors: [AppColors.surface, AppColors.surfaceLight]),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
-                        boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 2))],
+                        boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))],
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.calendar_today_outlined, color: AppColors.primary, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(todayStr, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w400)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(todayStr, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w400)),
+                                if (isStudent && _hasBookedTodayServer)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 6),
+                                    child: Text(
+                                      'You have already made a booking today.',
+                                      style: TextStyle(color: AppColors.warning, fontSize: 12),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
+                          IconButton(
+                            onPressed: _refreshBookedTodayFlag,
+                            icon: const Icon(Icons.sync),
+                            tooltip: 'Sync from server',
+                          )
                         ],
                       ),
                     ),
 
-                    // Page indicators
+                    // page indicators
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(rooms.length, (index) {
@@ -313,7 +380,7 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                     ),
                     const SizedBox(height: 16),
 
-                    // Room cards
+                    // room cards
                     Expanded(
                       child: PageView.builder(
                         controller: _pageController,
@@ -327,18 +394,14 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                           return Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppColors.surface, AppColors.surfaceLight],
-                              ),
+                              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.surface, AppColors.surfaceLight]),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
                               boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.15), blurRadius: 12, offset: Offset(0, 4))],
                             ),
                             child: Column(
                               children: [
-                                // Header
+                                // header
                                 Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
@@ -367,7 +430,7 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                                   ),
                                 ),
 
-                                // Time slots
+                                // time slots
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.all(20),
@@ -391,7 +454,6 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                                               final slot = _timeSlots[i];
                                               final time = (slot['time'] ?? '').toString();
 
-                                              // Disable past slots & enforce student can only book once per day
                                               final now = DateTime.now();
                                               final startStr = time.split('-').first;
                                               int sh = 0, sm = 0;
@@ -402,8 +464,9 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
                                               }
                                               final slotStart = DateTime(now.year, now.month, now.day, sh, sm);
                                               final isPast = now.isAfter(slotStart);
-                                              final hasBooked = (widget.role == 'student') && BookingState.hasBookedToday();
-                                              final enabled = (widget.role == 'student') && !isPast && !hasBooked;
+
+                                              // ✅ ใช้ธงจาก server เป็นหลัก
+                                              final enabled = (widget.role == 'student') && !isPast && !_hasBookedTodayServer;
 
                                               return InkWell(
                                                 onTap: enabled ? () => _showBookingDialog(context, r, time) : null,
@@ -466,7 +529,7 @@ class _Error extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 12),
-            Text('Failed to load rooms:\n$message', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
+            Text('Failed to load:\n$message', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],

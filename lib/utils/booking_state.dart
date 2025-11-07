@@ -1,17 +1,30 @@
 class BookingState {
-  static DateTime? _lastBookedAt;
+  /// Who is currently logged in (set after login)
+  static int? currentUserId;
 
-  static var userId;
+  /// Track last booking time **per user**
+  static final Map<int, DateTime> _lastBookedAtByUser = {};
 
   static bool hasBookedToday() {
-    if (_lastBookedAt == null) return false;
+    final uid = currentUserId;
+    if (uid == null) return false;
+    final last = _lastBookedAtByUser[uid];
+    if (last == null) return false;
+
     final now = DateTime.now();
-    return _lastBookedAt!.year == now.year &&
-        _lastBookedAt!.month == now.month &&
-        _lastBookedAt!.day == now.day;
+    return last.year == now.year &&
+        last.month == now.month &&
+        last.day == now.day;
   }
 
   static void markBookedNow() {
-    _lastBookedAt = DateTime.now();
+    final uid = currentUserId;
+    if (uid == null) return;
+    _lastBookedAtByUser[uid] = DateTime.now();
+  }
+
+  /// Optional: call on logout if you want to clear the in-memory mark
+  static void clearCurrentUser() {
+    currentUserId = null;
   }
 }
