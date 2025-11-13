@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/date_utils.dart';
 import '../utils/booking_state.dart';
+import '../widgets/app_scaffold.dart';
 
 class BookingConfirmPage extends StatelessWidget {
   final Map<String, dynamic> room;
@@ -43,12 +44,8 @@ class BookingConfirmPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final todayStr = formatTodayLong();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('CONFIRM BOOKING'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
+ return AppScaffold(
+      title: 'Confirm Booking',
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

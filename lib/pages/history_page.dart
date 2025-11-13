@@ -1,10 +1,12 @@
 // lib/pages/history.dart
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../utils/session.dart';     // expects: Session.userId, Session.username
-import '../utils/app_colors.dart';  // your color palette
+import '../widgets/app_scaffold.dart';
+import '../utils/session.dart';
+import '../utils/app_colors.dart';
 
 class HistoryPage extends StatefulWidget {
   /// 'student' | 'lecturer' | 'staff'
@@ -16,11 +18,14 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  // ====== CONFIG ======
-  // Android emulator → use 10.0.2.2. If testing on real device, use your PC LAN IP.
-  static const String _baseUrl = 'http://192.168.238.1:3001';
+  // ====== BASE URL (เหมือนหน้าอื่น) ======
+  String get _baseUrl {
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) return fromEnv;
+    if (Platform.isAndroid) return 'http://192.168.238.1:3001'; // emulator IP
+    return 'http://127.0.0.1:3001';
+  }
 
-  // ====== STATE ======
   bool _loading = true;
   String? _error;
   List<Map<String, String?>> _items = [];
@@ -38,15 +43,16 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     try {
-      final userId = Session.userId; // set after login
-      final role = widget.role;
+      final userId = Session.userId;
+      final role = (Session.role ?? widget.role).toLowerCase();
 
-      // Build query: staff → all; others → filter by userId
+      // build query params
       final params = <String, String>{'role': role};
       if (userId != null) params['userId'] = userId.toString();
 
-      final uri = Uri.parse('$_baseUrl/api/history')
-          .replace(queryParameters: params);
+      final uri = Uri.parse('$_baseUrl/api/history').replace(
+        queryParameters: params,
+      );
 
       final res = await http.get(uri, headers: {'Accept': 'application/json'});
       if (res.statusCode != 200) {
@@ -62,14 +68,13 @@ class _HistoryPageState extends State<HistoryPage> {
 
       setState(() {
         _items = data.map<Map<String, String?>>((e) {
-          final statusText = _normalizeStatus(e['status'], e['status_text']);
+          final status = (e['status'] ?? '').toString().toLowerCase();
           return {
-            'room'      : e['room']?.toString(),
-            'date'      : e['date']?.toString(),
-            'time'      : (e['time'] ?? e['time_slot'])?.toString(),
-            'bookedBy'  : (e['booked_by'] ?? e['username'])?.toString(),
-            'approvedBy': e['approved_by']?.toString(),
-            'status'    : statusText,
+            'room'     : e['room']?.toString(),
+            'date'     : e['date']?.toString(),
+            'time'     : e['time']?.toString(),
+            'bookedBy' : e['booked_by']?.toString(),
+            'status'   : status,
           };
         }).toList();
         _loading = false;
@@ -82,46 +87,36 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  /// Map either int status (0/1/2) or backend-provided status_text
-  /// → 'pending' | 'reserved' | 'rejected' | 'unknown'
-  String _normalizeStatus(dynamic status, dynamic statusText) {
-    if (statusText != null && statusText.toString().isNotEmpty) {
-      return statusText.toString();
-    }
-    if (status is int) {
-      switch (status) {
-        case 0: return 'pending';
-        case 1: return 'reserved';
-        case 2: return 'rejected';
-        default: return 'unknown';
-      }
-    }
-    // If status comes as string
-    final asInt = int.tryParse('${status ?? ''}');
-    if (asInt != null) return _normalizeStatus(asInt, null);
-    return 'unknown';
-  }
-
   Color _statusColor(String? s) {
     switch (s) {
-      case 'reserved': return AppColors.success;
-      case 'pending':  return AppColors.warning;
-      case 'rejected': return AppColors.error;
-      default:         return AppColors.disabled;
+      case 'approved':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      case 'pending':
+        return AppColors.warning;
+      default:
+        return AppColors.disabled;
+    }
+  }
+
+  String _statusLabel(String? s) {
+    switch (s) {
+      case 'approved':
+        return 'APPROVED';
+      case 'rejected':
+        return 'REJECTED';
+      case 'pending':
+        return 'PENDING';
+      default:
+        return 'UNKNOWN';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('History'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
+    return AppScaffold(
+      title: 'History',
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -130,9 +125,14 @@ class _HistoryPageState extends State<HistoryPage> {
                   onRefresh: _loadHistory,
                   child: _items.isEmpty
                       ? ListView(
-                          children: [
+                          children: const [
                             SizedBox(height: 120),
-                            Center(child: Text('No history to show.')),
+                            Center(
+                              child: Text(
+                                'No history to show.',
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ),
                           ],
                         )
                       : ListView.separated(
@@ -143,11 +143,11 @@ class _HistoryPageState extends State<HistoryPage> {
                           itemBuilder: (context, index) {
                             final h = _items[index];
                             final status = h['status'] ?? 'unknown';
+                            final color = _statusColor(status);
 
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
+                                gradient: const LinearGradient(
                                   colors: [AppColors.surface, AppColors.surfaceLight],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -168,30 +168,71 @@ class _HistoryPageState extends State<HistoryPage> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: _statusColor(status).withOpacity(0.1),
+                                    color: color.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
-                                    Icons.history_outlined,
-                                    color: _statusColor(status),
+                                    status == 'approved'
+                                        ? Icons.check_circle_outline
+                                        : (status == 'rejected'
+                                            ? Icons.cancel_outlined
+                                            : Icons.history_outlined),
+                                    color: color,
                                     size: 24,
                                   ),
                                 ),
-                                title: Text(
-                                  '${h['room'] ?? 'Unknown Room'} • ${status.toUpperCase()}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        h['room'] ?? 'Unknown Room',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: color.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: color, width: 1),
+                                      ),
+                                      child: Text(
+                                        _statusLabel(status),
+                                        style: TextStyle(
+                                          color: color,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Date: ${h['date'] ?? "-"}   •  Time: ${h['time'] ?? "-"}'),
-                                      Text('Booked by: ${h['bookedBy'] ?? "-"}'),
-                                      Text('Approved by: ${h['approvedBy'] ?? "-"}'),
+                                      Text(
+                                        'Date: ${h['date'] ?? "-"}   •   Time: ${h['time'] ?? "-"}',
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Booked by: ${h['bookedBy'] ?? "-"}',
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),

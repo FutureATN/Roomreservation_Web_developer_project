@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
 import '../utils/app_colors.dart';
+import '../widgets/app_scaffold.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

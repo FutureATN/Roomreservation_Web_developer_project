@@ -1,5 +1,7 @@
+// lib/pages/manage_rooms_page.dart
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
+import '../widgets/app_scaffold.dart';
 
 class ManageRoomsPage extends StatefulWidget {
   const ManageRoomsPage({super.key});
@@ -83,7 +85,7 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
     if (result != null) {
       setState(() {
         if (isEdit) {
-          final idx = _rooms.indexWhere((r) => r['id'] == room['id']);
+          final idx = _rooms.indexWhere((r) => r['id'] == room!['id']);
           if (idx != -1) _rooms[idx] = {'id': room['id'], ...result};
         } else {
           final maxId = _rooms.fold<int>(0, (p, e) => (e['id'] as int) > p ? e['id'] as int : p);
@@ -108,30 +110,15 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: false,
-        title: const Text(
-          'Manage Rooms',
-          style: TextStyle(
-            fontWeight: FontWeight.w300,
-            fontSize: 24,
-            letterSpacing: 0.5,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-            onPressed: () => _addOrEditRoom(),
-            tooltip: 'Add Room',
-          )
-        ],
-      ),
+    return AppScaffold(
+      title: 'Manage Rooms',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+          onPressed: () => _addOrEditRoom(),
+          tooltip: 'Add Room',
+        )
+      ],
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _rooms.length,
@@ -140,9 +127,7 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
           final r = _rooms[i];
           return Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.surface, AppColors.surfaceLight],
-              ),
+              gradient: const LinearGradient(colors: [AppColors.surface, AppColors.surfaceLight]),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
               boxShadow: [
@@ -163,7 +148,10 @@ class _ManageRoomsPageState extends State<ManageRoomsPage> {
                 ),
                 child: Icon(Icons.meeting_room_outlined, color: _statusColor(r['status'] as String), size: 24),
               ),
-              title: Text(r['name'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textPrimary)),
+              title: Text(
+                r['name'] as String,
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.textPrimary),
+              ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(

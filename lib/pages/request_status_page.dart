@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../widgets/app_scaffold.dart';
 
 import '../utils/app_colors.dart';
 import '../utils/session.dart'; // ต้องมี Session.userId
@@ -71,18 +72,8 @@ static const String _baseUrl = 'http://192.168.238.1:3001';
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: false,
-        title: const Text('My Requests',
-          style: TextStyle(fontWeight: FontWeight.w300, fontSize: 24, letterSpacing: 0.5),
-        ),
-      ),
+ return AppScaffold(
+      title: 'My Requests',
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
