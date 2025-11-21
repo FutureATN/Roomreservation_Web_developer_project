@@ -22,13 +22,18 @@ class _HistoryPageState extends State<HistoryPage> {
   String get _baseUrl {
     const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (fromEnv.isNotEmpty) return fromEnv;
-    if (Platform.isAndroid) return 'http://192.168.238.1:3001'; // emulator IP
+    if (Platform.isAndroid) return 'http://192.168.238.1:3001';
     return 'http://127.0.0.1:3001';
   }
 
   bool _loading = true;
   String? _error;
+
+  /// room, date, time, bookedBy, approvedBy, status
   List<Map<String, String?>> _items = [];
+
+  String get _currentRole =>
+      (Session.role ?? widget.role).toLowerCase(); // student/lecturer/staff
 
   @override
   void initState() {
@@ -44,7 +49,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
     try {
       final userId = Session.userId;
-      final role = (Session.role ?? widget.role).toLowerCase();
+      final role = _currentRole;
 
       // build query params
       final params = <String, String>{'role': role};
@@ -70,11 +75,13 @@ class _HistoryPageState extends State<HistoryPage> {
         _items = data.map<Map<String, String?>>((e) {
           final status = (e['status'] ?? '').toString().toLowerCase();
           return {
-            'room'     : e['room']?.toString(),
-            'date'     : e['date']?.toString(),
-            'time'     : e['time']?.toString(),
-            'bookedBy' : e['booked_by']?.toString(),
-            'status'   : status,
+            'room': e['room']?.toString(),
+            'date': e['date']?.toString(),
+            'time': e['time']?.toString(),
+            'bookedBy': e['booked_by']?.toString(),
+            // backend adds `approved_by` = username of approver (or null)
+            'approvedBy': e['approved_by']?.toString(),
+            'status': status,
           };
         }).toList();
         _loading = false;
@@ -115,6 +122,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isStaff = _currentRole == 'staff';
+
     return AppScaffold(
       title: 'History',
       body: _loading
@@ -130,7 +139,8 @@ class _HistoryPageState extends State<HistoryPage> {
                             Center(
                               child: Text(
                                 'No history to show.',
-                                style: TextStyle(color: AppColors.textSecondary),
+                                style:
+                                    TextStyle(color: AppColors.textSecondary),
                               ),
                             ),
                           ],
@@ -145,10 +155,18 @@ class _HistoryPageState extends State<HistoryPage> {
                             final status = h['status'] ?? 'unknown';
                             final color = _statusColor(status);
 
+                            final bookedBy = h['bookedBy'] ?? '-';
+                            final approvedBy = h['approvedBy'];
+                            final hasApprover =
+                                approvedBy != null && approvedBy.isNotEmpty;
+
                             return Container(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [AppColors.surface, AppColors.surfaceLight],
+                                  colors: [
+                                    AppColors.surface,
+                                    AppColors.surfaceLight
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
@@ -157,7 +175,8 @@ class _HistoryPageState extends State<HistoryPage> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.1),
+                                    color:
+                                        AppColors.primary.withOpacity(0.1),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -195,11 +214,15 @@ class _HistoryPageState extends State<HistoryPage> {
                                     const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: color.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: color, width: 1),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                        border:
+                                            Border.all(color: color, width: 1),
                                       ),
                                       child: Text(
                                         _statusLabel(status),
@@ -216,7 +239,8 @@ class _HistoryPageState extends State<HistoryPage> {
                                 subtitle: Padding(
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Date: ${h['date'] ?? "-"}   •   Time: ${h['time'] ?? "-"}',
@@ -226,13 +250,35 @@ class _HistoryPageState extends State<HistoryPage> {
                                         ),
                                       ),
                                       const SizedBox(height: 2),
-                                      Text(
-                                        'Booked by: ${h['bookedBy'] ?? "-"}',
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 13,
+                                      // For staff: show both who booked and who approved
+                                      if (isStaff) ...[
+                                        Text(
+                                          'Booked by: $bookedBy',
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 13,
+                                          ),
                                         ),
-                                      ),
+                                        if (hasApprover &&
+                                            status != 'pending')
+                                          Text(
+                                            'Approved by: $approvedBy',
+                                            style: const TextStyle(
+                                              color: AppColors
+                                                  .textSecondary,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                      ] else ...[
+                                        // Non-staff: keep previous simple info
+                                        Text(
+                                          'Booked by: $bookedBy',
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -258,7 +304,8 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline,
+                size: 48, color: AppColors.error),
             const SizedBox(height: 12),
             Text(
               'Error loading history:\n$message',
